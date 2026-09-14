@@ -51,6 +51,9 @@ Issues = "https://github.com/konflux-ci/pipeline-migration-tool/issues"
 pipeline-migration-tool = "pipeline_migration.cli:entry_point"
 pmt = "pipeline_migration.cli:entry_point"
 
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.setuptools.dynamic]
 version = {attr = "pipeline_migration.__version__"}
 
