@@ -8,14 +8,11 @@ COPY requirements.txt .
 COPY requirements-build.txt .
 
 # Install any dependencies
-RUN source /projects/hermeto.env \
-    # && python3 -m pip install --use-pep517 -r requirements-build.txt \
-    && python3 -m pip install --use-pep517 -r requirements.txt
+RUN pip install --use-pep517 -r requirements.txt
 # Copy the content of the local src directory to the working directory
-COPY . .
+COPY --chown=1001:0 . .
 
-RUN source /projects/hermeto.env \
-    && pip install --no-cache-dir .
+RUN pip install --no-cache-dir .
 
 
 # Specify the command to run on container start
