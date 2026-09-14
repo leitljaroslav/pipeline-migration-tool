@@ -1,4 +1,4 @@
-FROM registry.access.redhat.com/ubi9/python-312
+FROM registry.access.redhat.com/ubi9/python-312@sha256:debc1c4ae8ce13a7b65f6dd8498e40c9f31c54b2eae922a59246dda987b00a83
 
 # Set the working directory in the container
 WORKDIR /projects
@@ -16,5 +16,4 @@ RUN pip install --no-cache-dir .
 
 
 # Specify the command to run on container start
-# CMD [ "python", "./app.py" ]
 ENTRYPOINT [ "pipeline-migration-tool" ]
