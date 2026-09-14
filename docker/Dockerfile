@@ -1,5 +1,8 @@
 FROM registry.access.redhat.com/ubi9/python-312@sha256:debc1c4ae8ce13a7b65f6dd8498e40c9f31c54b2eae922a59246dda987b00a83
 
+EXPOSE 8081/tcp
+ENV FLASK_PORT=8081
+
 # Set the working directory in the container
 WORKDIR /projects
 
