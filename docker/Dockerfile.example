@@ -1,0 +1,84 @@
+FROM registry.access.redhat.com/ubi10@sha256:4690398669a07627339936c9e79b05233053056ce688efeb4400d3c1c530486b AS ubi
+FROM registry.access.redhat.com/ubi10/go-toolset:1.26.5-1787531065 AS golang_latest
+FROM brew.registry.redhat.io/rh-osbs/openshift-golang-builder:rhel_9_1.20 AS golang_1.20
+FROM quay.io/konflux-ci/konflux-build-cli@sha256:6211761dea7603413bd25fdf1d638d6d149a702ef980bcf733077be96c4b063e AS kbc
+FROM quay.io/konflux-ci/rust-builder:1.94.1 AS rust
+
+###########################
+# PREPARE GENERIC ARTIFACTS
+###########################
+FROM ubi AS artifacts
+
+ARG TARGETARCH
+
+RUN mkdir /artifacts && \
+    cd /artifacts && \
+    mkdir nodejs && \
+    # FIXME: update the reference to /hermeto/output once the related piece of work gets merged:
+    # https://issues.redhat.com/browse/STONEBLD-3670
+    # Use --strip-components to change the default nodejs-{version}-{os}-{arch} naming schema
+    tar -xzf /cachi2/output/deps/generic/nodejs-${TARGETARCH}.tar.gz -C ./nodejs --strip-components 1
+
+########################
+# PREPARE OUR BASE IMAGE
+########################
+FROM ubi AS base
+RUN dnf -y install \
+    --setopt install_weak_deps=0 \
+    --nodocs \
+    git-core \
+    jq \
+    python3.12 \
+    rubygem-bundler \
+    rubygem-json \
+    subscription-manager && \
+    dnf clean all
+
+###############
+# BUILD/INSTALL
+###############
+FROM base AS builder
+WORKDIR /src
+RUN dnf -y install \
+    --setopt install_weak_deps=0 \
+    --nodocs \
+    gcc \
+    python3.12-devel \
+    python3.12-pip \
+    && dnf clean all
+
+# Install dependencies in a separate layer to maximize layer caching
+COPY requirements.txt requirements-build.txt ./
+RUN python3.12 -m venv /venv && \
+    /venv/bin/pip install -r requirements-build.txt --no-deps --no-cache-dir --require-hashes && \
+    /venv/bin/pip install -r requirements.txt --no-deps --no-cache-dir --require-hashes
+
+COPY . .
+# Change the workdir to submodule directory
+WORKDIR /src/hermeto
+RUN /venv/bin/pip install --no-cache-dir .
+
+##########################
+# ASSEMBLE THE FINAL IMAGE
+##########################
+FROM base
+LABEL maintainer="Red Hat"
+
+# copy Go SDKs and Node.js installation from official images
+COPY --from=golang_latest /usr/lib/golang /usr/local/go/go_latest
+COPY --from=golang_1.20 /usr/lib/golang /usr/local/go/go1.20
+COPY --from=artifacts /artifacts/nodejs/lib/node_modules/corepack /usr/local/lib/corepack
+COPY --from=artifacts /artifacts/nodejs/bin/node /usr/local/bin/node
+COPY --from=kbc /usr/local/bin/konflux-build-cli /usr/local/bin/konflux-build-cli
+COPY --from=rust /usr/local/share/rust/bin/cargo /usr/bin/cargo
+COPY --from=builder /venv /venv
+
+# link corepack, yarn, and go to standard PATH location
+RUN ln -s /usr/local/lib/corepack/dist/corepack.js /usr/local/bin/corepack && \
+    ln -s /usr/local/lib/corepack/dist/yarn.js /usr/local/bin/yarn && \
+    ln -s /usr/local/go/go_latest/bin/go /usr/local/bin/go && \
+    ln -s /venv/bin/createrepo_c /usr/local/bin/createrepo_c && \
+    ln -s /venv/bin/cachi2 /usr/local/bin/cachi2 && \
+    ln -s /venv/bin/hermeto /usr/local/bin/hermeto
+
+ENTRYPOINT ["/usr/local/bin/hermeto"]
