@@ -1,22 +1,41 @@
-FROM registry.access.redhat.com/ubi9/python-312@sha256:debc1c4ae8ce13a7b65f6dd8498e40c9f31c54b2eae922a59246dda987b00a83
+FROM registry.access.redhat.com/ubi10/python-312-minimal@sha256:0f71645815e5e9fa5cbbbba051047fd3a276a45171e591498802a76c156c3a7c as base
+########################
+# PREPARE OUR BASE IMAGE
+########################
 
-EXPOSE 8081/tcp
-ENV FLASK_PORT=8081
+FROM base AS builder
+WORKDIR /src
+USER root
+RUN mkdir -p /venv && \
+    mkdir -p /releases && \
+    mkdir -p /src && \
+    chown -R 1001:0 /venv /releases /src
 
-# Set the working directory in the container
-WORKDIR /projects
-
-# Copy the dependencies files to the working directory
-COPY requirements.txt .
-COPY requirements-build.txt .
-
-# Install any dependencies
-RUN pip install --use-pep517 -r requirements.txt
-# Copy the content of the local src directory to the working directory
+USER 1001
+WORKDIR /src
+COPY --chown=1001:0 requirements.txt requirements-build.txt build-constraints.txt ./
+RUN python3.12 -m venv /venv && \
+    /venv/bin/pip install -r requirements-build.txt -c build-constraints.txt --no-deps --no-cache-dir --require-hashes && \
+    /venv/bin/pip install -r requirements.txt --no-deps --no-cache-dir --require-hashes
 COPY --chown=1001:0 . .
+RUN /venv/bin/pip install --no-cache-dir -c build-constraints.txt .
 
-RUN pip install --no-cache-dir .
+# Build release artifacts (tar.gz, zip, SHA256SUMS) into /releases
+# The script needs to import pipeline_migration (to read __version__) and setuptools (to build sdist)
+RUN bash -c '. /venv/bin/activate && bash docker/build-packages.sh /releases'
 
+##############################
+# ASSEMBLE THE RELEASE IMAGE #
+##############################
 
-# Specify the command to run on container start
-ENTRYPOINT [ "pipeline-migration-tool" ]
+FROM builder AS release
+WORKDIR /releases
+COPY --from=builder /releases /releases
+
+##########################
+# ASSEMBLE THE FINAL IMAGE
+##########################
+FROM base AS final
+LABEL maintainer="Red Hat"
+COPY --from=builder /venv /venv
+ENTRYPOINT [ "/venv/bin/pipeline-migration-tool" ]
