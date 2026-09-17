@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools >= 61.0"]
+requires = ["setuptools >= 84.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -50,6 +50,9 @@ Issues = "https://github.com/konflux-ci/pipeline-migration-tool/issues"
 [project.scripts]
 pipeline-migration-tool = "pipeline_migration.cli:entry_point"
 pmt = "pipeline_migration.cli:entry_point"
+
+[tool.setuptools.packages.find]
+where = ["src"]
 
 [tool.setuptools.dynamic]
 version = {attr = "pipeline_migration.__version__"}

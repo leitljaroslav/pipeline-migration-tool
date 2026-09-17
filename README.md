@@ -506,6 +506,21 @@ Executes commands in the following order to help making a release:
 > If customization is required based on the auto-generated notes, please do manual release creation
   via repository Releases page.
 
+## How to release
+
+1. Copy the name of the snapshot created by the last on-push pipeline
+2. Create the Release
+```
+VERSION="0.0.1"
+SNAPSHOT="pipeline-tool-migration-abc123"
+
+sed -e "s/<VERSION>/${VERSION}/g" \
+    -e "s/<SNAPSHOT_NAME>/${SNAPSHOT}/g" \
+    -e "s/<TAG>/${VERSION}/g" \
+    release_template.yaml > release.yaml
+```
+3. kubectl apply -f release.yaml
+
 ## License
 
 Copyright 2024.
