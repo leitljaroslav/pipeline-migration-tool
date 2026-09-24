@@ -11,10 +11,10 @@ metadata:
     pipelinesascode.tekton.dev/on-cel-expression: event == "pull_request" && target_branch
       == "main"
   labels:
-    appstudio.openshift.io/application: pmt
-    appstudio.openshift.io/component: pipeline-migration-tool-bf751
+    appstudio.openshift.io/application: pipeline-migration-tool-jleitl
+    appstudio.openshift.io/component: pipeline-migration-tool-main
     pipelines.appstudio.openshift.io/type: build
-  name: pipeline-migration-tool-bf751-on-pull-request
+  name: pipeline-migration-tool-main-on-pull-request
   namespace: default-tenant
 spec:
   params:
@@ -23,7 +23,7 @@ spec:
   - name: revision
     value: '{{revision}}'
   - name: output-image
-    value: quay.io/jleitltesting/default-tenant/pipeline-migration-tool-bf751:on-pr-{{revision}}
+    value: quay.io/jleitltesting/default-tenant/pipeline-migration-tool-main:on-pr-{{revision}}
   - name: image-expires-after
     value: 5d
   - name: dockerfile
@@ -38,6 +38,8 @@ spec:
         binary:
           packages: ":all:"
           os: "linux"
+  - name: build-source-image
+    value: "true"
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
@@ -546,35 +548,13 @@ spec:
         operator: in
         values:
         - "false"
-    - name: tpa-scan
-      params:
-      - name: image-digest
-        value: $(tasks.build-image-index.results.IMAGE_DIGEST)
-      - name: image-url
-        value: $(tasks.build-image-index.results.IMAGE_URL)
-      runAfter:
-      - build-image-index
-      taskRef:
-        params:
-        - name: name
-          value: tpa-scan
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-tpa-scan:0.1@sha256:6c33b3cb3cf7a0d66e9abb4479f6cfe5894a0305bbacdf90cba34140329c9f68
-        - name: kind
-          value: task
-        resolver: bundles
-      when:
-      - input: $(params.skip-checks)
-        operator: in
-        values:
-        - "false"
     workspaces:
     - name: git-auth
       optional: true
     - name: netrc
       optional: true
   taskRunTemplate:
-    serviceAccountName: build-pipeline-pipeline-migration-tool-bf751
+    serviceAccountName: build-pipeline-pipeline-migration-tool-main
   workspaces:
   - name: git-auth
     secret:
