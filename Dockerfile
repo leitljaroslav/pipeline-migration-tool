@@ -22,3 +22,25 @@ RUN ln -s /venv/bin/pipeline-migration-tool /usr/local/bin/pipeline-migration-to
 USER 1001
 
 ENTRYPOINT [ "/usr/local/bin/pipeline-migration-tool" ]
+
+##########################
+# ASSEMBLE THE FINAL IMAGE
+##########################
+FROM registry.access.redhat.com/ubi10/python-312-minimal:10.2@sha256:438056e6f95de4fd39e560bf5be5ef45216427a4f8e0d6e7187ba4ca179ad02d as release
+LABEL maintainer="Red Hat"
+LABEL io.k8s.display-name="pipeline-migration-tool-release"
+LABEL io.openshift.tags="konflux, pipeline-migration-tool, cli"
+LABEL summary="pipeline-migration-tool"
+LABEL name="pipeline-migration-tool-release"
+LABEL com.redhat.component="pipeline-migration-tool"
+
+COPY --from=base /venv /venv
+USER root
+RUN mkdir -p /releases
+COPY --chown=1001:0 releases/* /releases/
+
+RUN ln -s /venv/bin/pipeline-migration-tool /usr/local/bin/pipeline-migration-tool
+
+USER 1001
+
+ENTRYPOINT [ "/usr/local/bin/pipeline-migration-tool" ]

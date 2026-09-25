@@ -1,0 +1,8 @@
+{
+  "name": "pipeline-migration-tool",
+  "version": "0.0.1",
+  "artifacts": [
+    "pipeline-migration-tool-0.0.1.tar.gz",
+    "pipeline-migration-tool-0.0.1.zip"
+  ]
+}
