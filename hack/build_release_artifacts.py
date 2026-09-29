@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 """Build a sdist and a wheel for the current revision via `python3 -m build`,
-plus a zip of the sdist (a zip is mandatory in the release, and `build` only
-produces a tar.gz sdist), a SHA256SUMS file, and a JSON manifest. GitHub
-already attaches a raw source snapshot to releases automatically, so this
-does not duplicate that -- it only builds the installable artifacts. Runs
-with --no-isolation, so `build` and its backend (setuptools, pinned in
-requirements-build.txt) must already be installed -- no network access is
-required or used.
+plus a zip of each (the release-to-github pipeline's upload step only globs
+*.zip and *.json out of the image -- .tar.gz and .whl files are extracted
+into the image but never attached to the release), a SHA256SUMS file, and a
+JSON manifest. GitHub already attaches a raw source snapshot to releases
+automatically, so this does not duplicate that -- it only builds the
+installable artifacts. Runs with --no-isolation, so `build` and its backend
+(setuptools, pinned in requirements-build.txt) must already be installed --
+no network access is required or used.
 """
 
 import hashlib
 import json
 import re
+import shutil
 import subprocess
 import sys
 import tarfile
@@ -70,7 +72,7 @@ def tarball_to_zip(tar_path: Path) -> Path:
 
 
 def main() -> None:
-    """Build the sdist, wheel, and sdist-zip artifacts, a JSON manifest, and SHA256SUMS."""
+    """Build the sdist, wheel, and their zip mirrors, a JSON manifest, and SHA256SUMS."""
     if len(sys.argv) != 2:
         raise SystemExit(f"usage: {sys.argv[0]} <output-dir>")
 
@@ -83,6 +85,11 @@ def main() -> None:
 
     sdist_tarball = next(p for p in artifacts if p.name.endswith(".tar.gz"))
     artifacts.append(tarball_to_zip(sdist_tarball))
+
+    wheel = next(p for p in artifacts if p.suffix == ".whl")
+    wheel_zip = wheel.with_suffix(".zip")
+    shutil.copy2(wheel, wheel_zip)
+    artifacts.append(wheel_zip)
 
     manifest_path = out_dir / f"{NAME}-{version}.json"
     sums_path = out_dir / f"{NAME}_{version}_SHA256SUMS"
