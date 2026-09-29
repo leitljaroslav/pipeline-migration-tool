@@ -8,18 +8,21 @@ COPY . .
 RUN /venv/bin/pip install --no-cache-dir .
 
 ##########################
-# GENERATE RELEASE ARTIFACTS (tarball, zip, checksums, manifest) FROM SOURCE
+# GENERATE RELEASE ARTIFACTS (sdist, wheel, checksums, manifest) FROM SOURCE
 # Version is read from src/pipeline_migration/__init__.py, so this always
 # matches whatever revision is being built -- no GitHub release dependency.
-#
-# Hermetic builds cannot install packages and the
-# python-312-minimal base lacks tar/gzip/zip. The full ubi10/ubi image ships
-# python3 out of the box, so packaging is done with stdlib tarfile/zipfile
+# GitHub already attaches a raw source snapshot to releases automatically,
+# so this only builds the installable sdist/wheel artifacts, via
+# `python3 -m build --no-isolation`. Reuses the base stage's venv, which
+# already has the build backend (setuptools) and `build` itself installed
+# from requirements-build.txt, so no network access is needed.
 ##########################
-FROM registry.access.redhat.com/ubi10/ubi:10.2@sha256:223f8b83bcaa1159416724627ff2fadbfd2444653756b0c00d9dae1eacccbfbc AS package
+FROM registry.access.redhat.com/ubi10/python-312-minimal:10.2@sha256:438056e6f95de4fd39e560bf5be5ef45216427a4f8e0d6e7187ba4ca179ad02d AS package
+USER root
+COPY --from=base /venv /venv
 WORKDIR /src
 COPY . .
-RUN mkdir -p /out && python3 hack/build-release-artifacts.py /out
+RUN mkdir -p /out && /venv/bin/python hack/build_release_artifacts.py /out
 
 ##########################
 # IMAGE WITH RELEASE ARTIFACTS BAKED IN (manual: buildah build --target release)
