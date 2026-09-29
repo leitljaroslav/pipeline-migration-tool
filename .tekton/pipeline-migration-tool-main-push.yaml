@@ -37,6 +37,8 @@ spec:
           os: "linux"
   - name: build-source-image
     value: "true"
+  - name: target-stage
+    value: release
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
@@ -104,6 +106,11 @@ spec:
       description: Target directories in component's source code to scan with SAST
         tools. Multiple values should be separated with commas.
       name: sast-target-dirs
+      type: string
+    - default: ""
+      description: Target stage in Dockerfile to build. If not specified, the Dockerfile
+        is processed entirely to (and including) its last stage.
+      name: target-stage
       type: string
     - default: []
       description: Array of --build-arg values ("arg=value" strings) for buildah
@@ -229,6 +236,8 @@ spec:
         value: $(params.image-expires-after)
       - name: COMMIT_SHA
         value: $(tasks.clone-repository.results.commit)
+      - name: TARGET_STAGE
+        value: $(params.target-stage)
       - name: BUILD_ARGS
         value:
         - $(params.build-args[*])
