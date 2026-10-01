@@ -1,13 +1,8 @@
 define compile_deps
 	pip-compile --generate-hashes $(1) --output-file=requirements.txt pyproject.toml
 	pip-compile --extra=test --generate-hashes $(1) --output-file=requirements-test.txt pyproject.toml
+# 	pybuild-deps compile --no-annotate --generate-hashes $(1) --output-file=requirements-build.txt requirements.txt
 	pip-compile --allow-unsafe --generate-hashes $(1) --output-file=requirements-build.txt requirements-build.in
-	# Period is converted to dash during pip-compile. This is a workaround by reverting it back
-	# so that Renovate can include the updates correctly for ruamel.yaml package.
-	for req_file in requirements.txt requirements-test.txt; do \
-		sed -i "s/ruamel-yaml-clib/ruamel.yaml.clib/" $$req_file; \
-		sed -i "s/ruamel-yaml/ruamel.yaml/" $$req_file; \
-	done
 endef
 
 .PHONY: deps/compile deps/upgrade
@@ -24,7 +19,7 @@ deps/upgrade:
 venv/create:
 	python3 -m venv --upgrade-deps .venv
 	.venv/bin/python3 -m pip install -r requirements-test.txt
-	.venv/bin/python3 -m pip install pip-tools
+	.venv/bin/python3 -m pip install pip-tools pybuild-deps
 
 venv/remove:
 	rm -rf .venv
