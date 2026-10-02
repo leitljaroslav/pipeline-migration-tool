@@ -18,7 +18,7 @@ deps/upgrade:
 venv/create:
 	python3 -m venv --upgrade-deps .venv
 	.venv/bin/python3 -m pip install -r requirements-test.txt
-	.venv/bin/python3 -m pip install pip-tools pybuild-deps
+	.venv/bin/python3 -m pip install pip-tools
 
 venv/remove:
 	rm -rf .venv
