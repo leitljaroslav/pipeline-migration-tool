@@ -6,6 +6,7 @@ COPY --from=rust-builder /usr/local/share/rust /usr/local/share/rust
 ENV PATH="/usr/local/share/rust/bin:${PATH}"
 
 RUN python3.12 -m venv /venv && \
+    /venv/bin/pip install -r requirements-build.txt --no-deps --no-cache-dir --require-hashes && \
     /venv/bin/pip install -r requirements.txt --no-deps --no-cache-dir --require-hashes
 COPY . .
 RUN /venv/bin/pip install --no-cache-dir .
