@@ -5,11 +5,14 @@ COPY requirements.txt requirements-build.txt ./
 COPY --from=rust-builder /usr/local/share/rust /usr/local/share/rust
 ENV PATH="/usr/local/share/rust/bin:${PATH}"
 
-RUN python3.12 -m venv /venv && \
-    /venv/bin/pip install -r requirements-build.txt --no-deps --no-cache-dir --require-hashes && \
-    /venv/bin/pip install -r requirements.txt --no-deps --no-cache-dir --require-hashes
+# Use pip from the base image to install the requirements.
+# The bundled pip is older than the one in the base image and does not includes this:
+# https://github.com/pypa/pip/pull/12449
+# So the build fails with missing wheel package when install oras from requirements.txt which does
+# not have a `build-system` metadata in pyproject.toml.
+RUN python3.12 -m venv --without-pip /venv && pip --python=/venv/bin/python install -r requirements.txt
 COPY . .
-RUN /venv/bin/pip install --no-cache-dir .
+RUN pip --python=/venv/bin/python install --no-cache-dir .
 
 ##########################
 # GENERATE RELEASE ARTIFACTS (sdist, wheel, checksums, manifest) FROM SOURCE
