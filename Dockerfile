@@ -22,12 +22,10 @@ RUN pip --python=/venv/bin/python install --no-cache-dir .
 FROM registry.access.redhat.com/ubi9/python-312-minimal:9.8@sha256:bdfae86a800f2a1eb520a69e79e59f9f03ba5368dc54be5caf454dd5c0f382f2 AS package
 USER root
 COPY --from=base /venv /venv
-USER root
-RUN ln -s /venv/bin/pipeline-migration-tool /usr/local/bin/pipeline-migration-tool
-
-USER 1001
-
-ENTRYPOINT [ "/usr/local/bin/pipeline-migration-tool" ]
+WORKDIR /src
+COPY . .
+RUN pip --python=/venv/bin/python install -r requirements-extras.txt && \
+    mkdir -p /out && /venv/bin/python hack/build_release_artifacts.py /out
 
 ##########################
 # RELEASE IMAGE
