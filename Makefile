@@ -1,7 +1,8 @@
 define compile_deps
 	pip-compile --generate-hashes $(1) --output-file=requirements.txt pyproject.toml
 	pip-compile --extra=test --generate-hashes $(1) --output-file=requirements-test.txt pyproject.toml
-	pip-compile --allow-unsafe --generate-hashes $(1) --output-file=requirements-build.txt requirements-build.in
+	pybuild-deps compile --no-annotate --generate-hashes --output-file=requirements-build.txt requirements.txt
+	pip-compile --generate-hashes $(1) --allow-unsafe --output-file=requirements-extras.txt requirements-extras.in
 	# Period is converted to dash during pip-compile. This is a workaround by reverting it back
 	# so that Renovate can include the updates correctly for ruamel.yaml package.
 	for req_file in requirements.txt requirements-test.txt; do \
