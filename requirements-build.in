@@ -1,3 +1,12 @@
-build==1.6.1
-setuptools==83.0.0
-wheel==0.48.0
+build==1.6.1                        # invoked directly: hack/build_release_artifacts.py runs `python3 -m build`
+setuptools==83.0.0                  # this project's own backend; also certifi/charset-normalizer/requests/ruamel-yaml/oras fallback
+wheel==0.48.0                       # oras has no [build-system] table -> PEP 517 legacy fallback needs wheel
+flit-core==3.12.0                   # idna, packaging, typing-extensions
+hatchling==1.32.4                   # attrs, jsonschema, jsonschema-specifications, referencing, urllib3
+hatch-vcs==0.5.0                    # same set as hatchling
+hatch-fancy-pypi-readme==25.1.0     # attrs, jsonschema
+setuptools-scm==10.3.4              # urllib3
+maturin==1.15.0                     # rpds-py
+setuptools-rust==1.13.0             # maturin's own build backend
+calver==2025.10.20                  # trove-classifiers' own build backend (trove-classifiers itself pulled in via hatchling)
+poetry-core==2.5.0                  # tomlkit's own build backend (tomlkit itself pulled in via hatchling)
