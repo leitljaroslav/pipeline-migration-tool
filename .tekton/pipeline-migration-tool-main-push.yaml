@@ -33,10 +33,12 @@ spec:
         requirements_files: ["requirements.txt"]
         requirements_build_files: ["requirements-build.txt"]
         binary:
-          packages: ":all:"
-          os: "linux"
+          packages: "rpds-py"
+          py_version: 312
   - name: build-source-image
     value: "true"
+  - name: target-stage
+    value: release
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
@@ -104,6 +106,11 @@ spec:
       description: Target directories in component's source code to scan with SAST
         tools. Multiple values should be separated with commas.
       name: sast-target-dirs
+      type: string
+    - default: ""
+      description: Target stage in Dockerfile to build. If not specified, the Dockerfile
+        is processed entirely to (and including) its last stage.
+      name: target-stage
       type: string
     - default: []
       description: Array of --build-arg values ("arg=value" strings) for buildah
@@ -229,6 +236,8 @@ spec:
         value: $(params.image-expires-after)
       - name: COMMIT_SHA
         value: $(tasks.clone-repository.results.commit)
+      - name: TARGET_STAGE
+        value: $(params.target-stage)
       - name: BUILD_ARGS
         value:
         - $(params.build-args[*])
@@ -545,23 +554,6 @@ spec:
         operator: in
         values:
         - "false"
-    - name: tpa-scan
-      params:
-      - name: image-digest
-        value: $(tasks.build-image-index.results.IMAGE_DIGEST)
-      - name: image-url
-        value: $(tasks.build-image-index.results.IMAGE_URL)
-      runAfter:
-      - build-image-index
-      taskRef:
-        params:
-        - name: name
-          value: tpa-scan
-        - name: bundle
-          value: quay.io/konflux-ci/tekton-catalog/task-tpa-scan:0.1@sha256:c15dbb2faf110947dbc2644a6a289cd1cbb858bddf212486a7deac65a1506f87
-        - name: kind
-          value: task
-        resolver: bundles
     workspaces:
     - name: git-auth
       optional: true

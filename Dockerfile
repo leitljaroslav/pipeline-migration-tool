@@ -24,33 +24,30 @@ USER 1001
 ENTRYPOINT [ "/usr/local/bin/pipeline-migration-tool" ]
 
 ##########################
-# IMAGE WITH RELEASE ARTIFACTS BAKED IN (manual: buildah build --target release)
-# Not built by default -- docker-build-oci-ta has no target-stage param, so it
-# always builds through to the LAST stage in this file, which is the slim one below.
+# RELEASE IMAGE
+# Based on ubi10-minimal rather than scratch so it satisfies the
+# ecosystem-cert-preflight-checks Conforma gate
 ##########################
-FROM registry.access.redhat.com/ubi10/python-312-minimal:10.2@sha256:438056e6f95de4fd39e560bf5be5ef45216427a4f8e0d6e7187ba4ca179ad02d as release
+FROM registry.access.redhat.com/ubi10/ubi-minimal:10.2@sha256:a9f9316ec3a1419a2de6ce4d2d9f034d477e97cdf2a16d6f04b7bd632ac753c4 as release
+ARG APP_VERSION=0.9.0
 LABEL maintainer="Red Hat"
 LABEL io.k8s.display-name="pipeline-migration-tool-release"
 LABEL io.openshift.tags="konflux, pipeline-migration-tool, cli"
 LABEL summary="pipeline-migration-tool"
+LABEL description="Release artifacts (sdist, wheel, checksums, manifest) for pipeline-migration-tool"
 LABEL name="pipeline-migration-tool-release"
 LABEL com.redhat.component="pipeline-migration-tool"
-
-COPY --from=base /venv /venv
-USER root
-RUN mkdir -p /releases
+LABEL vendor="Red Hat, Inc."
+LABEL version=$APP_VERSION
+LABEL release="1"
+COPY LICENSE /licenses/LICENSE
 COPY --from=package --chown=1001:0 /out/* /releases/
-
-RUN ln -s /venv/bin/pipeline-migration-tool /usr/local/bin/pipeline-migration-tool
-
 USER 1001
 
-ENTRYPOINT [ "/usr/local/bin/pipeline-migration-tool" ]
-
 ##########################
-# ASSEMBLE THE FINAL (SLIM) IMAGE -- this is what Konflux builds and ships by default
+# ASSEMBLE THE FINAL (SLIM) IMAGE
 ##########################
-FROM registry.access.redhat.com/ubi10/python-312-minimal:10.2@sha256:438056e6f95de4fd39e560bf5be5ef45216427a4f8e0d6e7187ba4ca179ad02d
+FROM registry.access.redhat.com/ubi10/python-312-minimal:10.2@sha256:438056e6f95de4fd39e560bf5be5ef45216427a4f8e0d6e7187ba4ca179ad02d as runtime
 LABEL maintainer="Red Hat"
 LABEL io.k8s.display-name="pipeline-migration-tool"
 LABEL io.openshift.tags="konflux, pipeline-migration-tool, cli"
@@ -59,8 +56,6 @@ LABEL name="pipeline-migration-tool"
 LABEL com.redhat.component="pipeline-migration-tool"
 
 COPY --from=base /venv /venv
-# TEMPORARY: copy release artifacts from the package stage to please the pipeline overlords
-COPY --from=package --chown=1001:0 /out/* /releases/
 USER root
 RUN ln -s /venv/bin/pipeline-migration-tool /usr/local/bin/pipeline-migration-tool
 

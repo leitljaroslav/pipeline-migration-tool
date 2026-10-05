@@ -87,7 +87,7 @@ def main() -> None:
     artifacts.append(tarball_to_zip(sdist_tarball))
 
     wheel = next(p for p in artifacts if p.suffix == ".whl")
-    wheel_zip = wheel.with_suffix(".zip")
+    wheel_zip = wheel.with_suffix(".whl.zip")
     shutil.copy2(wheel, wheel_zip)
     artifacts.append(wheel_zip)
 
