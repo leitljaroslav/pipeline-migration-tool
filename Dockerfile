@@ -1,5 +1,5 @@
 FROM quay.io/konflux-ci/rust-builder:1.94.1@sha256:8e84d5507f664cd2d3c6dfa1ad5ac33c3fd13480d6571c4ec1b9c3d26a28f0bc AS rust-builder
-FROM registry.access.redhat.com/ubi9/python-312:latest@sha256:e6a10c3150624fbfd33dbd7721ef99ce7a1001b417d64427ad58515ab8044121 AS base
+FROM registry.access.redhat.com/ubi9/python-312:latest@sha256:56fad467cb1e41666f0028b7fd71107df0556bcc9ecfc577597858c85618f55c AS base
 # hadolint ignore=DL3002 # Not a final image
 USER 0
 WORKDIR /src
