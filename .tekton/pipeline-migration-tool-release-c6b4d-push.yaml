@@ -25,6 +25,21 @@ spec:
     value: quay.io/redhat-user-workloads-stage/jleitl-tenant/pipeline-migration-tool-release-c6b4d:{{revision}}
   - name: dockerfile
     value: ./Dockerfile
+  - name: hermetic
+    value: "true"
+  - name: prefetch-input
+    value:
+      - type: pip
+        requirements_files:
+          - requirements.txt
+          - requirements-test.txt
+        requirements_build_files:
+          - requirements-build.txt
+          - requirements-extras.txt
+  - name: build-source-image
+    value: "true"
+  - name: target-stage
+    value: release
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
