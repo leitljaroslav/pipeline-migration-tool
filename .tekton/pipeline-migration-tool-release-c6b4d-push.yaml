@@ -38,7 +38,7 @@ spec:
           - requirements-extras.txt
   - name: build-source-image
     value: "true"
-  - name: target-stage
+  - name: target_stage
     value: release
   pipelineSpec:
     description: |
@@ -257,6 +257,8 @@ spec:
         value: $(tasks.prefetch-dependencies.results.SOURCE_ARTIFACT)
       - name: CACHI2_ARTIFACT
         value: $(tasks.prefetch-dependencies.results.CACHI2_ARTIFACT)
+      - name: TARGET_STAGE
+        value: $(params.target_stage)
       runAfter:
       - prefetch-dependencies
       taskRef:
