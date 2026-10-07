@@ -21,7 +21,7 @@ RUN pip --python=/venv/bin/python install --no-cache-dir .
 # Version is read from src/pipeline_migration/__init__.py.
 # This only builds the installable sdist/wheel artifacts
 ##########################
-FROM registry.access.redhat.com/ubi9/python-312-minimal:9.8@sha256:bdfae86a800f2a1eb520a69e79e59f9f03ba5368dc54be5caf454dd5c0f382f2 AS package
+FROM registry.access.redhat.com/ubi9/python-312-minimal:9.8@sha256:a3a5cfe0c6738de28a6fa8f8cb61c16491605dd6786905c8984b79385c353783 AS package
 # hadolint ignore=DL3002 # Not a final image
 USER 0
 COPY --from=base /venv /venv
@@ -53,7 +53,7 @@ USER 1001
 ##########################
 # ASSEMBLE THE FINAL (SLIM) IMAGE
 ##########################
-FROM registry.access.redhat.com/ubi9/python-312-minimal:9.8@sha256:bdfae86a800f2a1eb520a69e79e59f9f03ba5368dc54be5caf454dd5c0f382f2 AS runtime
+FROM registry.access.redhat.com/ubi9/python-312-minimal:9.8@sha256:a3a5cfe0c6738de28a6fa8f8cb61c16491605dd6786905c8984b79385c353783 AS runtime
 LABEL maintainer="Red Hat"
 LABEL io.k8s.display-name="pipeline-migration-tool"
 LABEL io.openshift.tags="konflux, pipeline-migration-tool, cli"
