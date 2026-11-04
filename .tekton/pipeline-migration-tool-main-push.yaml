@@ -34,7 +34,7 @@ spec:
   - name: build-source-image
     value: "true"
   - name: target-stage
-    value: release
+    value: runtime
   pipelineSpec:
     description: |
       This pipeline is ideal for building container images from a Containerfile while maintaining trust after pipeline customization.
