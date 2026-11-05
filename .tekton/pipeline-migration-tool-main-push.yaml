@@ -7,8 +7,9 @@ metadata:
     build.appstudio.redhat.com/target_branch: '{{target_branch}}'
     pipelinesascode.tekton.dev/cancel-in-progress: "false"
     pipelinesascode.tekton.dev/max-keep-runs: "3"
-    pipelinesascode.tekton.dev/on-cel-expression: event == "push" && target_branch
-      == "main"
+    pipelinesascode.tekton.dev/on-cel-expression: |
+      event == "push" && target_branch == "main"
+      && "VERSION".pathChanged()
   labels:
     appstudio.openshift.io/application: pipeline-migration-tool-jleitl
     appstudio.openshift.io/component: pipeline-migration-tool-main
@@ -187,6 +188,12 @@ spec:
       workspaces:
       - name: basic-auth
         workspace: git-auth
+    - name: get-build-params
+      taskRef:
+        name: get-build-params
+      params:
+      - name: SOURCE_ARTIFACT
+        value: $(tasks.clone-repository.results.SOURCE_ARTIFACT)
     - name: prefetch-dependencies
       params:
       - name: input
@@ -233,6 +240,12 @@ spec:
         value: $(params.image-expires-after)
       - name: COMMIT_SHA
         value: $(tasks.clone-repository.results.commit)
+      - name: ANNOTATIONS
+        value:
+        - $(tasks.get-build-params.results.annotations[*])
+      - name: LABELS
+        value:
+        - $(tasks.get-build-params.results.labels[*])
       - name: BUILD_ARGS
         value:
         - $(params.build-args[*])

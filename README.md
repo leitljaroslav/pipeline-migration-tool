@@ -443,9 +443,15 @@ pmt migrate -u "$(cat /tmp/pmt-test-upgrades.txt)"
 
 Releases are versioned in the form of `major.minor.patch`.
 
-The root `VERSION` file is the source of the Python package version. Image builds must pass its
-contents as the `VERSION` build argument. The runtime image stores this value in both the
-`org.opencontainers.image.version` and `version` labels.
+The root `VERSION` file is the source of the Python package version and the container image
+version. Setuptools reads it when building the Python package.
+
+Both the push and pull-request pipelines use
+[get-build-params.yaml](.tekton/tasks/get-build-params.yaml) to read `VERSION` from the cloned
+source artifact. The task returns the full version in the `org.opencontainers.image.version`
+annotation and label and in the `version` label. It also derives the `version.major` label from
+the major component. The `build-container` task passes these results directly to Buildah through
+its `ANNOTATIONS` and `LABELS` parameters.
 
 - Major version remains 0.
 - Minor version is incremented when new feature and backward incompatible changes are introduced.
@@ -460,6 +466,9 @@ For example:
   `++patch`, otherwise `++minor`
 
 ### Build and publish the container image
+
+Konflux builds obtain their version metadata automatically from the shared `get-build-params`
+task, using the same source commit as the image build.
 
 For a local build with version labels, read the version from the file:
 
@@ -480,9 +489,12 @@ tags:
   - "{{ git_sha }}"
 ```
 
-`{{ oci_version }}` reads the image's OCI version metadata, with a fallback to the OCI version
-label. A `VERSION` value of `0.9.1` produces a `0.9.1` image tag. GitHub release tags use a separate
-`v` prefix, for example `v0.9.1`.
+At release time, `{{ oci_version }}` reads the built image's `org.opencontainers.image.version`
+annotation, falling back to the label with the same name. With this mapping, a `VERSION` value
+of `0.9.1` produces a `0.9.1` image tag, and `{{ git_sha }}` adds a tag for the source commit.
+To also publish a moving major-version tag, add `"v{{ labels.version.major }}"` to the list;
+for `0.9.1`, this resolves to `v0`. GitHub release tags use the full version with a separate `v`
+prefix, for example `v0.9.1`.
 
 After merging a version change, wait for Konflux to build that commit and create a new snapshot.
 With automatic releases enabled on the ReleasePlan, eligible snapshots are released automatically.
