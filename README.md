@@ -443,6 +443,10 @@ pmt migrate -u "$(cat /tmp/pmt-test-upgrades.txt)"
 
 Releases are versioned in the form of `major.minor.patch`.
 
+The root `VERSION` file is the source of the Python package version. Image builds must pass its
+contents as the `VERSION` build argument. The runtime image stores this value in both the
+`org.opencontainers.image.version` and `version` labels.
+
 - Major version remains 0.
 - Minor version is incremented when new feature and backward incompatible changes are introduced.
 - Patch version is incremented when backward compatible changes are introduced.
@@ -455,15 +459,63 @@ For example:
 - A bug fix that does not introduce changes to the original behavior and command line interface:
   `++patch`, otherwise `++minor`
 
-### Steps
+### Build and publish the container image
+
+For a local build with version labels, read the version from the file:
+
+```bash
+package_version=$(cat VERSION)
+podman build \
+  --label "org.opencontainers.image.version=$package_version" \
+  --label "version=$package_version" \
+  --label "version.major=${package_version%%.*}" \
+  -t "pipeline-migration-tool:$package_version" .
+```
+
+Configure the ReleasePlanAdmission repository tags to consume the image version:
+
+```yaml
+tags:
+  - "{{ oci_version }}"
+  - "{{ git_sha }}"
+```
+
+`{{ oci_version }}` reads the image's OCI version metadata, with a fallback to the OCI version
+label. A `VERSION` value of `0.9.1` produces a `0.9.1` image tag. GitHub release tags use a separate
+`v` prefix, for example `v0.9.1`.
+
+After merging a version change, wait for Konflux to build that commit and create a new snapshot.
+Use Konflux UI or Release manifest to trigger a release.
+
+```bash
+oc create -f - <<'EOF'
+apiVersion: appstudio.redhat.com/v1alpha1
+kind: Release
+metadata:
+  generateName: pipeline-migration-tool-
+  namespace: <namespace>
+spec:
+  releasePlan: <release-plan-name>
+  snapshot: <new-snapshot-name>
+EOF
+```
+
+Apply any ReleasePlanAdmission changes before creating the Release. Use the new snapshot from
+the version-bump commit; an existing snapshot keeps its original image and version. Wait for the
+Release's `Released` condition to become `True` and verify that the destination version tag resolves
+to the snapshot image digest. Publishing a GitHub release does not itself trigger this manual
+Konflux release.
+
+### Publish the GitHub release
 
 Follow these steps to make and publish a release. Here, version `0.4.2` is used as an example.
 
 - Synchronize with `main` branch
 - Checkout to a release branch `release-0.4.2`
-- Update version in `src/pipeline_migration/__init__.py`
+- Update the root `VERSION` file
 - Commit the change with title `Release 0.4.2` and open a pull request.
 - Review and merge the pull request
+- Complete the container image release described above
 - Go to https://github.com/konflux-ci/pipeline-migration-tool/releases/new
 - Create a new tag `v0.4.2`
 - Ensure the target is `main` branch
@@ -486,7 +538,9 @@ Post-release steps:
 
 ### Run script alternatively
 
-Executes commands in the following order to help making a release:
+The helper updates `VERSION`, opens the version-bump pull request, and publishes the GitHub release.
+It does not trigger or wait for a Konflux release. Run the following commands in order, completing
+the container image release after the pull request is merged:
 
 ```bash
 ./hack/make-release.sh make_release_for_review version issue-key
