@@ -481,24 +481,16 @@ podman build \
   -t "pipeline-migration-tool:$package_version" .
 ```
 
-Configure the ReleasePlanAdmission repository tags to consume the image version:
+### Release process
 
-```yaml
-tags:
-  - "{{ oci_version }}"
-  - "{{ git_sha }}"
-```
-
-At release time, `{{ oci_version }}` reads the built image's `org.opencontainers.image.version`
-annotation, falling back to the label with the same name. With this mapping, a `VERSION` value
-of `0.9.1` produces a `0.9.1` image tag, and `{{ git_sha }}` adds a tag for the source commit.
-To also publish a moving major-version tag, add `"v{{ labels.version.major }}"` to the list;
-for `0.9.1`, this resolves to `v0`. GitHub release tags use the full version with a separate `v`
-prefix, for example `v0.9.1`.
-
-After merging a version change, wait for Konflux to build that commit and create a new snapshot.
-With automatic releases enabled on the ReleasePlan, eligible snapshots are released automatically.
-If `release.appstudio.openshift.io/auto-release` is `"false"`, trigger the release explicitly:
+1. Determine what has changed since last release and update the VERSION and CHANGELOG.md
+   files accordingly (see above).
+2. Send a PR to update the version and changelog.
+3. Once merged, create the GitHub release as `v{version}` (e.g. `v0.1.0`).
+   In the release notes, just link the relevant heading in CHANGELOG.md.
+4. Merging the PR will have triggered a Konflux on-push pipeline, which will
+   create a snapshot to be used with with a Release.
+   manifest for Release is here:
 
 ```bash
 oc create -f - <<'EOF'
@@ -512,12 +504,6 @@ spec:
   snapshot: <new-snapshot-name>
 EOF
 ```
-
-Apply any ReleasePlanAdmission changes before creating the Release. Use the new snapshot from
-the version-bump commit; an existing snapshot keeps its original image and version. Wait for the
-Release's `Released` condition to become `True` and verify that the destination version tag resolves
-to the snapshot image digest. Publishing a GitHub release does not itself trigger this manual
-Konflux release.
 
 ### Publish the GitHub release
 
