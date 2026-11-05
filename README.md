@@ -485,7 +485,8 @@ label. A `VERSION` value of `0.9.1` produces a `0.9.1` image tag. GitHub release
 `v` prefix, for example `v0.9.1`.
 
 After merging a version change, wait for Konflux to build that commit and create a new snapshot.
-Use Konflux UI or Release manifest to trigger a release.
+With automatic releases enabled on the ReleasePlan, eligible snapshots are released automatically.
+If `release.appstudio.openshift.io/auto-release` is `"false"`, trigger the release explicitly:
 
 ```bash
 oc create -f - <<'EOF'
