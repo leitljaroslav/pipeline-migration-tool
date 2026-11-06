@@ -443,9 +443,15 @@ pmt migrate -u "$(cat /tmp/pmt-test-upgrades.txt)"
 
 Releases are versioned in the form of `major.minor.patch`.
 
-The root `VERSION` file is the source of the Python package version. Image builds must pass its
-contents as the `VERSION` build argument. The runtime image stores this value in both the
-`org.opencontainers.image.version` and `version` labels.
+The root `VERSION` file is the source of the Python package version and the container image
+version. Setuptools reads it when building the Python package.
+
+Both the push and pull-request pipelines use
+[get-build-params.yaml](.tekton/tasks/get-build-params.yaml) to read `VERSION` from the cloned
+source artifact. The task returns the full version in the `org.opencontainers.image.version`
+annotation and label and in the `version` label. It also derives the `version.major` label from
+the major component. The `build-container` task passes these results directly to Buildah through
+its `ANNOTATIONS` and `LABELS` parameters.
 
 - Major version remains 0.
 - Minor version is incremented when new feature and backward incompatible changes are introduced.
@@ -459,52 +465,13 @@ For example:
 - A bug fix that does not introduce changes to the original behavior and command line interface:
   `++patch`, otherwise `++minor`
 
-### Build and publish the container image
+### Release process
 
-For a local build with version labels, read the version from the file:
-
-```bash
-package_version=$(cat VERSION)
-podman build \
-  --label "org.opencontainers.image.version=$package_version" \
-  --label "version=$package_version" \
-  --label "version.major=${package_version%%.*}" \
-  -t "pipeline-migration-tool:$package_version" .
-```
-
-Configure the ReleasePlanAdmission repository tags to consume the image version:
-
-```yaml
-tags:
-  - "{{ oci_version }}"
-  - "{{ git_sha }}"
-```
-
-`{{ oci_version }}` reads the image's OCI version metadata, with a fallback to the OCI version
-label. A `VERSION` value of `0.9.1` produces a `0.9.1` image tag. GitHub release tags use a separate
-`v` prefix, for example `v0.9.1`.
-
-After merging a version change, wait for Konflux to build that commit and create a new snapshot.
-Use Konflux UI or Release manifest to trigger a release.
-
-```bash
-oc create -f - <<'EOF'
-apiVersion: appstudio.redhat.com/v1alpha1
-kind: Release
-metadata:
-  generateName: pipeline-migration-tool-
-  namespace: <namespace>
-spec:
-  releasePlan: <release-plan-name>
-  snapshot: <new-snapshot-name>
-EOF
-```
-
-Apply any ReleasePlanAdmission changes before creating the Release. Use the new snapshot from
-the version-bump commit; an existing snapshot keeps its original image and version. Wait for the
-Release's `Released` condition to become `True` and verify that the destination version tag resolves
-to the snapshot image digest. Publishing a GitHub release does not itself trigger this manual
-Konflux release.
+1. Determine what has changed since last release and update the VERSION file.
+2. Send a PR to update the version and changelog.
+3. Once merged, create the GitHub release as `v{version}` (e.g. `v0.1.0`).
+4. Merging the PR will trigger a Konflux on-push pipeline, which will
+   auto-release the version if VERSION file is changed in the main.
 
 ### Publish the GitHub release
 
