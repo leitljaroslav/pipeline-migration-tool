@@ -16,13 +16,7 @@ RUN python3.12 -m venv --without-pip /venv && pip --python=/venv/bin/python inst
 COPY . .
 RUN pip --python=/venv/bin/python install --no-cache-dir .
 
-##########################
-# ASSEMBLE THE FINAL IMAGE
-##########################
 FROM registry.access.redhat.com/ubi9/python-312-minimal:9.8@sha256:a3a5cfe0c6738de28a6fa8f8cb61c16491605dd6786905c8984b79385c353783 AS runtime
-ARG VERSION
-LABEL org.opencontainers.image.version="${VERSION}"
-LABEL version="${VERSION}"
 LABEL maintainer="Red Hat"
 LABEL io.k8s.display-name="pipeline-migration-tool"
 LABEL io.openshift.tags="konflux, pipeline-migration-tool, cli"

@@ -465,45 +465,13 @@ For example:
 - A bug fix that does not introduce changes to the original behavior and command line interface:
   `++patch`, otherwise `++minor`
 
-### Build and publish the container image
-
-Konflux builds obtain their version metadata automatically from the shared `get-build-params`
-task, using the same source commit as the image build.
-
-For a local build with version labels, read the version from the file:
-
-```bash
-package_version=$(cat VERSION)
-podman build \
-  --label "org.opencontainers.image.version=$package_version" \
-  --label "version=$package_version" \
-  --label "version.major=${package_version%%.*}" \
-  -t "pipeline-migration-tool:$package_version" .
-```
-
 ### Release process
 
-1. Determine what has changed since last release and update the VERSION and CHANGELOG.md
-   files accordingly (see above).
+1. Determine what has changed since last release and update the VERSION file.
 2. Send a PR to update the version and changelog.
 3. Once merged, create the GitHub release as `v{version}` (e.g. `v0.1.0`).
-   In the release notes, just link the relevant heading in CHANGELOG.md.
-4. Merging the PR will have triggered a Konflux on-push pipeline, which will
-   create a snapshot to be used with with a Release.
-   manifest for Release is here:
-
-```bash
-oc create -f - <<'EOF'
-apiVersion: appstudio.redhat.com/v1alpha1
-kind: Release
-metadata:
-  generateName: pipeline-migration-tool-
-  namespace: <namespace>
-spec:
-  releasePlan: <release-plan-name>
-  snapshot: <new-snapshot-name>
-EOF
-```
+4. Merging the PR will trigger a Konflux on-push pipeline, which will
+   auto-release the version if VERSION file is changed in the main.
 
 ### Publish the GitHub release
 
