@@ -443,6 +443,16 @@ pmt migrate -u "$(cat /tmp/pmt-test-upgrades.txt)"
 
 Releases are versioned in the form of `major.minor.patch`.
 
+The root `VERSION` file is the source of the Python package version and the container image
+version. Setuptools reads it when building the Python package.
+
+Both the push and pull-request pipelines use
+[get-build-params.yaml](.tekton/tasks/get-build-params.yaml) to read `VERSION` from the cloned
+source artifact. The task returns the full version in the `org.opencontainers.image.version`
+annotation and label and in the `version` label. It also derives the `version.major` label from
+the major component. The `build-container` task passes these results directly to Buildah through
+its `ANNOTATIONS` and `LABELS` parameters.
+
 - Major version remains 0.
 - Minor version is incremented when new feature and backward incompatible changes are introduced.
 - Patch version is incremented when backward compatible changes are introduced.
@@ -455,15 +465,24 @@ For example:
 - A bug fix that does not introduce changes to the original behavior and command line interface:
   `++patch`, otherwise `++minor`
 
-### Steps
+### Release process
+
+1. Determine what has changed since last release and update the VERSION file.
+2. Send a PR to update the version and changelog.
+3. Once merged, create the GitHub release as `v{version}` (e.g. `v0.1.0`).
+4. Merging the PR will trigger a Konflux on-push pipeline, which will
+   auto-release the version if VERSION file is changed in the main.
+
+### Publish the GitHub release
 
 Follow these steps to make and publish a release. Here, version `0.4.2` is used as an example.
 
 - Synchronize with `main` branch
 - Checkout to a release branch `release-0.4.2`
-- Update version in `src/pipeline_migration/__init__.py`
+- Update the root `VERSION` file
 - Commit the change with title `Release 0.4.2` and open a pull request.
 - Review and merge the pull request
+- Complete the container image release described above
 - Go to https://github.com/konflux-ci/pipeline-migration-tool/releases/new
 - Create a new tag `v0.4.2`
 - Ensure the target is `main` branch
@@ -486,7 +505,9 @@ Post-release steps:
 
 ### Run script alternatively
 
-Executes commands in the following order to help making a release:
+The helper updates `VERSION`, opens the version-bump pull request, and publishes the GitHub release.
+It does not trigger or wait for a Konflux release. Run the following commands in order, completing
+the container image release after the pull request is merged:
 
 ```bash
 ./hack/make-release.sh make_release_for_review version issue-key
